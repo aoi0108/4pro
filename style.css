@@ -1,0 +1,24 @@
+body {
+    text-align: center;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    }
+
+h1 {
+    margin-bottom: 20px;
+    }
+canvas {
+    margin-top: 10px;
+    display: block; /* ← 中央に見やすく表示 */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#startButton {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 18px;
+    cursor: pointer;
+}
