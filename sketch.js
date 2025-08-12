@@ -11,6 +11,12 @@ let winSound;
 let loseSound;
 let soundPlayed = false;
 
+// 風船アニメーション用の変数
+let balloons = [];
+let confetti = [];
+let animationStartTime = 0;
+let showAnimation = false;
+
 const MOUTH_OPEN_THRESHOLD = 15;
 
 function preload() {
@@ -191,16 +197,22 @@ function drawCountdown() {
     if (countdownValue > 0) {
         text(countdownValue, width / 2, height / 2);
     } else {
-        fill('lime');
+        fill('white');
         textSize(80);
-        text("GO! 💊", width / 2, height / 2);
+        text("GO! ", width / 2, height / 2);
     }
 
     // カウントダウン中の説明
-    fill('yellow');
-    noStroke();
-    textSize(24);
-    text("薬を飲み込む準備をしよう！", width / 2, height / 2 + 100);
+    if (countdownValue > 0) {
+        fill('white');
+        noStroke();
+        textSize(24);
+        text("薬を飲み込む準備をしよう！", width / 2, height / 2 + 100);
+    } else {
+        fill('white');
+        textSize(30);
+        text("今だ！薬を飲み込もう！", width / 2, height / 2 + 100);
+    }
 }
 function drawDrinking() {
     let elapsed = millis() - drinkingStartTime;
@@ -215,12 +227,12 @@ function drawDrinking() {
     }
 
     // 薬を飲む時間の表示
-    fill('cyan');
+    fill('white');
     stroke('black');
     strokeWeight(2);
     textSize(48);
     textAlign(CENTER, CENTER);
-    text("薬を飲み込んでいます...", width / 2, height / 2 - 50);
+    text("薬を飲み込み中...", width / 2, height / 2 - 50);
 
     // 残り時間表示
     fill('white');
@@ -230,15 +242,15 @@ function drawDrinking() {
 
     // プログレスバー
     let progress = elapsed / drinkingDuration;
-    fill('darkblue');
+    fill(114, 149, 198);
     rect(width / 4, height / 2 + 60, width / 2, 20);
-    fill('lightblue');
+    fill(217, 217, 217);
     rect(width / 4, height / 2 + 60, (width / 2) * progress, 20);
 
     // 指示
-    fill('yellow');
+    fill('white');
     textSize(18);
-    text("この間に薬を飲もう！飲めたら口を開けて変顔してね！", width / 2, height / 2 + 100);
+    text("飲み込めたら口を開けて変顔してね！", width / 2, height / 2 + 100);
 }
 
 function judgeResult() {
@@ -256,6 +268,7 @@ function judgeResult() {
             if (gameResult === 'win' && winSound) {
                 winSound.setVolume(0.3);
                 winSound.play();
+                startWinAnimation();
             } else if (gameResult === 'lose' && loseSound) {
                 loseSound.setVolume(0.3);
                 loseSound.play();
@@ -270,6 +283,116 @@ function judgeResult() {
     }
 }
 
+function startWinAnimation() {
+    showAnimation = true;
+    animationStartTime = millis();
+    balloons = [];
+    confetti = [];
+
+    // 風船を作成
+    for (let i = 0; i < 8; i++) {
+        balloons.push(new Balloon(random(width), height + 50, i));
+    }
+
+    // 紙吹雪を作成
+    for (let i = 0; i < 50; i++) {
+        confetti.push(new Confetti(random(width), -10));
+    }
+}
+
+// 風船クラス
+class Balloon {
+    constructor(x, y, index) {
+        this.x = x;
+        this.y = y;
+        this.targetY = random(50, 200);
+        this.size = random(30, 50);
+        this.colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57', '#FF9FF3'];
+        this.color = this.colors[index % this.colors.length];
+        this.swayAmount = random(1, 3);
+        this.swaySpeed = random(0.02, 0.05);
+        this.floatSpeed = random(1, 2);
+        this.stringLength = random(80, 120);
+    }
+
+    update() {
+        // 上昇運動
+        if (this.y > this.targetY) {
+            this.y -= this.floatSpeed;
+        }
+
+        // 左右の揺れ
+        this.x += sin(millis() * this.swaySpeed) * this.swayAmount;
+
+        // 画面外チェック
+        if (this.x < -50) this.x = width + 50;
+        if (this.x > width + 50) this.x = -50;
+    }
+
+    display() {
+        push();
+
+        // 風船の紐
+        stroke(100);
+        strokeWeight(2);
+        line(this.x, this.y + this.size / 2, this.x, this.y + this.size / 2 + this.stringLength);
+
+        // 風船本体
+        fill(this.color);
+        stroke(0);
+        strokeWeight(2);
+        ellipse(this.x, this.y, this.size, this.size * 1.2);
+
+        // ハイライト
+        fill(255, 255, 255, 150);
+        noStroke();
+        ellipse(this.x - this.size / 4, this.y - this.size / 4, this.size / 3, this.size / 4);
+
+        pop();
+    }
+}
+
+// 紙吹雪クラス
+class Confetti {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = random(-2, 2);
+        this.vy = random(1, 4);
+        this.size = random(5, 12);
+        this.rotation = random(TWO_PI);
+        this.rotationSpeed = random(-0.2, 0.2);
+        this.colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57', '#FF9FF3'];
+        this.color = random(this.colors);
+        this.gravity = 0.1;
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.gravity;
+        this.rotation += this.rotationSpeed;
+
+        // 風の影響
+        this.vx += random(-0.1, 0.1);
+    }
+
+    display() {
+        push();
+        translate(this.x, this.y);
+        rotate(this.rotation);
+        fill(this.color);
+        noStroke();
+        rectMode(CENTER);
+        rect(0, 0, this.size, this.size);
+        pop();
+    }
+
+    isOffScreen() {
+        return this.y > height + 50;
+    }
+}
+
 function drawResult() {
     // 背景をビデオで表示
     if (video && video.elt && video.elt.readyState >= 2) {
@@ -279,9 +402,13 @@ function drawResult() {
         pop();
     }
 
+    // WIN時のアニメーション表示
+    if (showAnimation && gameResult === 'win') {
+        updateAndDrawAnimation();
+    }
+
     // 結果表示
-    fill('black');
-    stroke('white');
+    fill('white');
     strokeWeight(3);
     rect(width / 4, height / 2 - 100, width / 2, 200);
 
@@ -290,27 +417,51 @@ function drawResult() {
     textAlign(CENTER, CENTER);
 
     if (gameResult === 'win') {
-        fill('lime');
+        fill(198, 114, 114);
         textSize(64);
-        text("WIN! 🎉", width / 2, height / 2 - 30);
+        text("WIN", width / 2, height / 2 - 30);
 
-        fill('white');
+        fill('black');
         textSize(20);
         text("自分に勝ちました！素晴らしい👏", width / 2, height / 2 + 20);
     } else {
-        fill('red');
+        fill(114, 149, 198);
         textSize(64);
-        text("LOSE... 😢", width / 2, height / 2 - 30);
+        text("LOSE", width / 2, height / 2 - 30);
 
-        fill('white');
+        fill('black');
         textSize(20);
-        text("焦らないで！\n一旦落ち着こう！", width / 2, height / 2 + 20);
+        text("焦らないで！一旦落ち着こう！", width / 2, height / 2 + 20);
     }
 
     // リスタートの案内
-    fill('yellow');
+    fill('red');
     textSize(18);
-    text("画面をクリックしてもう一度プレイ", width / 2, height / 2 + 60);
+    text("画面をクリックして再挑戦", width / 2, height / 2 + 60);
+}
+
+function updateAndDrawAnimation() {
+    // 風船のアニメーション
+    for (let balloon of balloons) {
+        balloon.update();
+        balloon.display();
+    }
+
+    // 紙吹雪のアニメーション
+    for (let i = confetti.length - 1; i >= 0; i--) {
+        confetti[i].update();
+        confetti[i].display();
+
+        // 画面外に出た紙吹雪を削除
+        if (confetti[i].isOffScreen()) {
+            confetti.splice(i, 1);
+        }
+    }
+
+    // 一定時間後にアニメーション終了
+    if (millis() - animationStartTime > 10000) { // 10秒間
+        showAnimation = false;
+    }
 }
 
 function drawGameplay() {
@@ -377,10 +528,10 @@ function drawGameplay() {
 }
 
 function drawStartScreen() {
-    background(50);
+    background(176, 224, 230);
 
     // タイトル
-    fill('white');
+    fill('black');
     textSize(48);
     textAlign(CENTER, CENTER);
     text("変顔de服薬", width / 2, height / 2 - 50);
@@ -391,7 +542,6 @@ function drawStartScreen() {
 
     // ボタンを押す案内
     textSize(16);
-    fill('yellow');
     text("「準備完了！」ボタンを押してスタート", width / 2, height / 2 + 80);
 }
 
